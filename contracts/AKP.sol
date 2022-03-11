@@ -18,19 +18,33 @@ contract AKP is Ownable, ERC20 {
     uint256 totalFee = burnFee;
 
     mapping(address => bool) public isExcludedFromFees;
+    mapping(address => bool) public WL;
 
+    bool locker = true;
 
     constructor() ERC20("AKP", "AKP") {
         _mint(msg.sender, _supply);
         isExcludedFromFees[msg.sender] = true;
+        WL[msg.sender] = true;
     }
 
     function changeExcludeFeeStatus(address addr, bool _st) public {
         isExcludedFromFees[addr] = _st;
     }
 
+    function changeWLStatus(address addr, bool _st) public {
+        WL[addr] = _st;
+    }
+
     function decimals() public view virtual override returns (uint8) {
         return 9;
+    }
+
+    // open trade lock
+    // just run once
+    function openSale() external onlyOwner {
+        require(locker, "AKP: Locker Has been Opened!");
+        locker = false;
     }
 
     function _transfer(
@@ -40,6 +54,10 @@ contract AKP is Ownable, ERC20 {
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
+
+        if(locker && !WL[from] && !WL[to]) {
+            require(false, "Cant Trande");
+        }
 
         if(amount == 0) {
             super._transfer(from, to, 0);
