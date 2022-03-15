@@ -9,13 +9,21 @@ contract AKP is Ownable, ERC20 {
 
     using SafeMath for uint256;
 
-    uint _supply = 1_000_000_000_000_000_000;
+    uint constant DECIMAL = 1_000_000_000;
+    uint _supply = 1_000_000_000 * DECIMAL;
+    uint minimumBurnAmount = 1_000_000 * DECIMAL;
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
+    address public marketingWallet;
+
+    // release token by time period
+    address public TimeReleaser;
 
     uint256 public burnFee = 1;
+    uint256 public marketingFee = 4;
 
-    uint256 totalFee = burnFee;
+    uint256 totalFee = burnFee.add(marketingFee);
+
 
     mapping(address => bool) public isExcludedFromFees;
     mapping(address => bool) public WL;
@@ -71,8 +79,24 @@ contract AKP is Ownable, ERC20 {
         }
 
         if(takeFee) {
+            if(totalSupply() <= minimumBurnAmount && burnFee > 0) {
+                burnFee = 0;
+                totalFee = marketingFee;
+            }
+
             uint feeAmount = amount.mul(totalFee).div(100);
-            super._transfer(from, deadWallet, feeAmount);
+
+            // preset 
+            uint marketingAmount = feeAmount;
+            if(burnFee > 0) {
+                uint burnAmount = feeAmount.mul(burnFee).div(totalFee);
+                super._transfer(from, deadWallet, burnAmount);
+
+                marketingAmount = feeAmount.sub(burnAmount);
+            }
+            
+            super._transfer(from, marketingWallet, marketingAmount);
+
             amount = amount.sub(feeAmount);
         }
 
