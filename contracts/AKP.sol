@@ -11,13 +11,12 @@ contract AKP is Ownable, ERC20 {
 
     uint constant DECIMAL = 1_000_000_000;
     uint _supply = 1_000_000_000 * DECIMAL;
-    uint minimumBurnAmount = 1_000_000 * DECIMAL;
+    uint maximumBurnAmount = _supply.sub(1_000_000 * DECIMAL);
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
-    address public marketingWallet;
+    address public marketingWallet = 0x8Edc1474720d6Eb0C13aaE87FBAB4abAD5b608Ab;
 
     // release token by time period
-    address public TimeReleaser;
 
     uint256 public burnFee = 1;
     uint256 public marketingFee = 4;
@@ -27,8 +26,9 @@ contract AKP is Ownable, ERC20 {
 
     mapping(address => bool) public isExcludedFromFees;
     mapping(address => bool) public WL;
+    mapping(address => bool) public BL;
 
-    bool locker = true;
+    bool locker = false;
 
     constructor() ERC20("AKP", "AKP") {
         _mint(msg.sender, _supply);
@@ -37,10 +37,12 @@ contract AKP is Ownable, ERC20 {
     }
 
     function changeExcludeFeeStatus(address addr, bool _st) public {
+        require(isExcludedFromFees[addr] != _st, "Need No To Change");
         isExcludedFromFees[addr] = _st;
     }
 
     function changeWLStatus(address addr, bool _st) public {
+        require(WL[addr] != _st, "Need No To Change");
         WL[addr] = _st;
     }
 
@@ -79,7 +81,8 @@ contract AKP is Ownable, ERC20 {
         }
 
         if(takeFee) {
-            if(totalSupply() <= minimumBurnAmount && burnFee > 0) {
+            uint burnedAmount = balanceOf(deadWallet);
+            if(burnedAmount >= maximumBurnAmount && burnFee > 0) {
                 burnFee = 0;
                 totalFee = marketingFee;
             }
